@@ -3460,7 +3460,7 @@ reindex_index(Oid indexId, bool skip_constraint_checks, char persistence,
 	if (progress)
 	{
 		pgstat_progress_start_command(PROGRESS_COMMAND_CREATE_INDEX,
-									  heapId);
+									  heapId, true, GetCurrentTimestamp());
 		pgstat_progress_update_param(PROGRESS_CREATEIDX_COMMAND,
 									 PROGRESS_CREATEIDX_COMMAND_REINDEX);
 		pgstat_progress_update_param(PROGRESS_CREATEIDX_INDEX_OID,

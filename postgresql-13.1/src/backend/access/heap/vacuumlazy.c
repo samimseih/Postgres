@@ -456,7 +456,7 @@ heap_vacuum_rel(Relation onerel, VacuumParams *params,
 		elevel = DEBUG2;
 
 	pgstat_progress_start_command(PROGRESS_COMMAND_VACUUM,
-								  RelationGetRelid(onerel));
+								  RelationGetRelid(onerel), true, GetCurrentTimestamp());
 
 	vac_strategy = bstrategy;
 
@@ -2409,8 +2409,16 @@ lazy_vacuum_index(Relation indrel, IndexBulkDeleteResult **stats,
 	IndexVacuumInfo ivinfo;
 	PGRUsage	ru0;
 	LVSavedErrInfo saved_err_info;
+       	const int       index[] = {
+                PROGRESS_VACUUM_PHASE,
+                PROGRESS_VACUUM_CURRENT_INDRELID
+        };
+	int64           val[2];
 
 	pg_rusage_init(&ru0);
+
+        val[0] = PROGRESS_VACUUM_PHASE_VACUUM_INDEX;
+        val[1] = RelationGetRelid(indrel);
 
 	ivinfo.index = indrel;
 	ivinfo.analyze_only = false;
@@ -2431,11 +2439,16 @@ lazy_vacuum_index(Relation indrel, IndexBulkDeleteResult **stats,
 	update_vacuum_error_info(vacrelstats, &saved_err_info,
 							 VACUUM_ERRCB_PHASE_VACUUM_INDEX,
 							 InvalidBlockNumber);
-
+	
+	pgstat_progress_update_multi_param(2, index, val);
+	
 	/* Do bulk deletion */
 	*stats = index_bulk_delete(&ivinfo, *stats,
 							   lazy_tid_reaped, (void *) dead_tuples);
 
+	pgstat_progress_update_param(PROGRESS_VACUUM_CURRENT_INDRELID,
+                                                                 	0);
+	
 	ereport(elevel,
 			(errmsg("scanned index \"%s\" to remove %d row versions",
 					vacrelstats->indname,
@@ -2462,8 +2475,16 @@ lazy_cleanup_index(Relation indrel,
 	IndexVacuumInfo ivinfo;
 	PGRUsage	ru0;
 	LVSavedErrInfo saved_err_info;
+        const int       index[] = {
+                PROGRESS_VACUUM_PHASE,
+                PROGRESS_VACUUM_CURRENT_INDRELID
+        };
+        int64           val[2];
 
 	pg_rusage_init(&ru0);
+
+        val[0] = PROGRESS_VACUUM_PHASE_INDEX_CLEANUP;
+        val[1] = RelationGetRelid(indrel);
 
 	ivinfo.index = indrel;
 	ivinfo.analyze_only = false;
@@ -2486,7 +2507,12 @@ lazy_cleanup_index(Relation indrel,
 							 VACUUM_ERRCB_PHASE_INDEX_CLEANUP,
 							 InvalidBlockNumber);
 
+        pgstat_progress_update_multi_param(2, index, val);
+
 	*stats = index_vacuum_cleanup(&ivinfo, *stats);
+
+        pgstat_progress_update_param(PROGRESS_VACUUM_CURRENT_INDRELID,
+                                                                        0);
 
 	if (*stats)
 	{
@@ -3501,7 +3527,12 @@ parallel_vacuum_main(dsm_segment *seg, shm_toc *toc)
 	 * workers.
 	 */
 	onerel = table_open(lvshared->relid, ShareUpdateExclusiveLock);
-
+	
+	/*
+	 * Start tracking progress for parallel worker backend 
+	 */
+        pgstat_progress_start_command(PROGRESS_COMMAND_VACUUM,
+                                                                  RelationGetRelid(onerel), false, GetCurrentTimestamp());
 	/*
 	 * Open all indexes. indrels are sorted in order by OID, which should be
 	 * matched to the leader's one.
@@ -3563,6 +3594,7 @@ parallel_vacuum_main(dsm_segment *seg, shm_toc *toc)
 
 	vac_close_indexes(nindexes, indrels, RowExclusiveLock);
 	table_close(onerel, ShareUpdateExclusiveLock);
+	pgstat_progress_end_command();
 	pfree(stats);
 }
 

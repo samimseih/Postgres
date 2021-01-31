@@ -259,7 +259,7 @@ cluster_rel(Oid tableOid, Oid indexOid, int options)
 	/* Check for user-requested abort. */
 	CHECK_FOR_INTERRUPTS();
 
-	pgstat_progress_start_command(PROGRESS_COMMAND_CLUSTER, tableOid);
+	pgstat_progress_start_command(PROGRESS_COMMAND_CLUSTER, tableOid, true, GetCurrentTimestamp());
 	if (OidIsValid(indexOid))
 		pgstat_progress_update_param(PROGRESS_CLUSTER_COMMAND,
 									 PROGRESS_CLUSTER_COMMAND_CLUSTER);

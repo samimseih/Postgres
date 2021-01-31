@@ -3211,7 +3211,7 @@ pgstat_report_activity(BackendState state, const char *cmd_str)
  *-----------
  */
 void
-pgstat_progress_start_command(ProgressCommandType cmdtype, Oid relid)
+pgstat_progress_start_command(ProgressCommandType cmdtype, Oid relid, bool isleader, TimestampTz phasestart )
 {
 	volatile PgBackendStatus *beentry = MyBEEntry;
 
@@ -3221,6 +3221,8 @@ pgstat_progress_start_command(ProgressCommandType cmdtype, Oid relid)
 	PGSTAT_BEGIN_WRITE_ACTIVITY(beentry);
 	beentry->st_progress_command = cmdtype;
 	beentry->st_progress_command_target = relid;
+	beentry->st_progress_is_leader = isleader;
+	beentry->st_progress_phase_start_timestamp = phasestart;
 	MemSet(&beentry->st_progress_param, 0, sizeof(beentry->st_progress_param));
 	PGSTAT_END_WRITE_ACTIVITY(beentry);
 }
@@ -3243,6 +3245,7 @@ pgstat_progress_update_param(int index, int64 val)
 
 	PGSTAT_BEGIN_WRITE_ACTIVITY(beentry);
 	beentry->st_progress_param[index] = val;
+	beentry->st_progress_phase_start_timestamp = GetCurrentTimestamp();
 	PGSTAT_END_WRITE_ACTIVITY(beentry);
 }
 

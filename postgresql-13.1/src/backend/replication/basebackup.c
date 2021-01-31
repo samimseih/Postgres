@@ -274,7 +274,7 @@ perform_base_backup(basebackup_options *opt)
 
 	backup_total = 0;
 	backup_streamed = 0;
-	pgstat_progress_start_command(PROGRESS_COMMAND_BASEBACKUP, InvalidOid);
+	pgstat_progress_start_command(PROGRESS_COMMAND_BASEBACKUP, InvalidOid, true, GetCurrentTimestamp());
 
 	/*
 	 * If the estimation of the total backup size is disabled, make the

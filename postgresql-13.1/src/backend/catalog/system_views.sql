@@ -991,7 +991,7 @@ CREATE VIEW pg_stat_progress_analyze AS
         S.param6 AS child_tables_total,
         S.param7 AS child_tables_done,
         CAST(S.param8 AS oid) AS current_child_table_relid
-    FROM pg_stat_get_progress_info('ANALYZE') AS S
+    FROM pg_stat_get_progress_info('ANALYZE',true) AS S
         LEFT JOIN pg_database D ON S.datid = D.oid;
 
 CREATE VIEW pg_stat_progress_vacuum AS
@@ -1009,7 +1009,23 @@ CREATE VIEW pg_stat_progress_vacuum AS
         S.param2 AS heap_blks_total, S.param3 AS heap_blks_scanned,
         S.param4 AS heap_blks_vacuumed, S.param5 AS index_vacuum_count,
         S.param6 AS max_dead_tuples, S.param7 AS num_dead_tuples
-    FROM pg_stat_get_progress_info('VACUUM') AS S
+    FROM pg_stat_get_progress_info('VACUUM',true) AS S
+        LEFT JOIN pg_database D ON S.datid = D.oid;
+
+CREATE VIEW pg_stat_progress_vacuum_worker AS
+    SELECT
+        S.pid AS pid, S.datid AS datid, D.datname AS datname,
+        S.relid AS relid, S.is_leader AS is_leader, S.phase_start_time as phase_start_time,
+        CASE S.param1 WHEN 0 THEN 'initializing'
+                      WHEN 1 THEN 'scanning heap'
+                      WHEN 2 THEN 'vacuuming indexes'
+                      WHEN 3 THEN 'vacuuming heap'
+                      WHEN 4 THEN 'cleaning up indexes'
+                      WHEN 5 THEN 'truncating heap'
+                      WHEN 6 THEN 'performing final cleanup'
+                      END AS phase,
+	S.param8 AS indrelid
+    FROM pg_stat_get_progress_info('VACUUM',false) AS S
         LEFT JOIN pg_database D ON S.datid = D.oid;
 
 CREATE VIEW pg_stat_progress_cluster AS
@@ -1036,7 +1052,7 @@ CREATE VIEW pg_stat_progress_cluster AS
         S.param6 AS heap_blks_total,
         S.param7 AS heap_blks_scanned,
         S.param8 AS index_rebuild_count
-    FROM pg_stat_get_progress_info('CLUSTER') AS S
+    FROM pg_stat_get_progress_info('CLUSTER',true) AS S
         LEFT JOIN pg_database D ON S.datid = D.oid;
 
 CREATE VIEW pg_stat_progress_create_index AS
@@ -1071,7 +1087,7 @@ CREATE VIEW pg_stat_progress_create_index AS
         S.param13 AS tuples_done,
         S.param14 AS partitions_total,
         S.param15 AS partitions_done
-    FROM pg_stat_get_progress_info('CREATE INDEX') AS S
+    FROM pg_stat_get_progress_info('CREATE INDEX',true) AS S
         LEFT JOIN pg_database D ON S.datid = D.oid;
 
 CREATE VIEW pg_stat_progress_basebackup AS
@@ -1088,7 +1104,7 @@ CREATE VIEW pg_stat_progress_basebackup AS
         S.param3 AS backup_streamed,
         S.param4 AS tablespaces_total,
         S.param5 AS tablespaces_streamed
-    FROM pg_stat_get_progress_info('BASEBACKUP') AS S;
+    FROM pg_stat_get_progress_info('BASEBACKUP',true) AS S;
 
 CREATE VIEW pg_user_mappings AS
     SELECT

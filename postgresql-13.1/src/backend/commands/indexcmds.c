@@ -554,7 +554,7 @@ DefineIndex(Oid relationId,
 	if (!OidIsValid(parentIndexId))
 	{
 		pgstat_progress_start_command(PROGRESS_COMMAND_CREATE_INDEX,
-									  relationId);
+									  relationId, true, GetCurrentTimestamp());
 		pgstat_progress_update_param(PROGRESS_CREATEIDX_COMMAND,
 									 concurrent ?
 									 PROGRESS_CREATEIDX_COMMAND_CREATE_CONCURRENTLY :
@@ -3085,7 +3085,7 @@ ReindexRelationConcurrently(Oid relationOid, int options)
 			elog(ERROR, "cannot reindex a temporary table concurrently");
 
 		pgstat_progress_start_command(PROGRESS_COMMAND_CREATE_INDEX,
-									  RelationGetRelid(heapRel));
+									  RelationGetRelid(heapRel), true, GetCurrentTimestamp());
 		progress_vals[0] = PROGRESS_CREATEIDX_COMMAND_REINDEX_CONCURRENTLY;
 		progress_vals[1] = 0;	/* initializing */
 		progress_vals[2] = indexId;
@@ -3227,7 +3227,7 @@ ReindexRelationConcurrently(Oid relationOid, int options)
 		 * Update progress for the index to build, with the correct parent
 		 * table involved.
 		 */
-		pgstat_progress_start_command(PROGRESS_COMMAND_CREATE_INDEX, heapId);
+		pgstat_progress_start_command(PROGRESS_COMMAND_CREATE_INDEX, heapId, true, GetCurrentTimestamp());
 		progress_vals[0] = PROGRESS_CREATEIDX_COMMAND_REINDEX_CONCURRENTLY;
 		progress_vals[1] = PROGRESS_CREATEIDX_PHASE_BUILD;
 		progress_vals[2] = newIndexId;
@@ -3293,7 +3293,7 @@ ReindexRelationConcurrently(Oid relationOid, int options)
 		 * Update progress for the index to build, with the correct parent
 		 * table involved.
 		 */
-		pgstat_progress_start_command(PROGRESS_COMMAND_CREATE_INDEX, heapId);
+		pgstat_progress_start_command(PROGRESS_COMMAND_CREATE_INDEX, heapId, true, GetCurrentTimestamp());
 		progress_vals[0] = PROGRESS_CREATEIDX_COMMAND_REINDEX_CONCURRENTLY;
 		progress_vals[1] = PROGRESS_CREATEIDX_PHASE_VALIDATE_IDXSCAN;
 		progress_vals[2] = newIndexId;

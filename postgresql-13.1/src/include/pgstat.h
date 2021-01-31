@@ -1134,6 +1134,8 @@ typedef struct PgBackendStatus
 	ProgressCommandType st_progress_command;
 	Oid			st_progress_command_target;
 	int64		st_progress_param[PGSTAT_NUM_PROGRESS_PARAM];
+	bool		st_progress_is_leader;
+	TimestampTz     st_progress_phase_start_timestamp;
 } PgBackendStatus;
 
 /*
@@ -1324,7 +1326,8 @@ extern const char *pgstat_get_crashed_backend_activity(int pid, char *buffer,
 													   int buflen);
 
 extern void pgstat_progress_start_command(ProgressCommandType cmdtype,
-										  Oid relid);
+										  Oid relid, bool isleader, 
+												TimestampTz phasestart);
 extern void pgstat_progress_update_param(int index, int64 val);
 extern void pgstat_progress_update_multi_param(int nparam, const int *index,
 											   const int64 *val);

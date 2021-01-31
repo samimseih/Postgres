@@ -253,7 +253,7 @@ analyze_rel(Oid relid, RangeVar *relation,
 	MyPgXact->vacuumFlags |= PROC_IN_ANALYZE;
 	LWLockRelease(ProcArrayLock);
 	pgstat_progress_start_command(PROGRESS_COMMAND_ANALYZE,
-								  RelationGetRelid(onerel));
+								  RelationGetRelid(onerel), true, GetCurrentTimestamp());
 
 	/*
 	 * Do the normal non-recursive ANALYZE.  We can skip this for partitioned
