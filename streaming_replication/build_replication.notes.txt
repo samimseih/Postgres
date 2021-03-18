@@ -35,6 +35,7 @@ pg_ctl start -D $PGDATA -l /tmp/logs/db1_2/logfile
 
 
 # create database on primary
+export PGDATA=/tmp/db1
 psql postgres<<EOF
 alter user simseih password 'password';
 create user test password 'password';
@@ -48,6 +49,7 @@ EOF
 
 
 # load data
+export PGDATA=/tmp/db1
 psql test<<EOF
 with ins as ( insert into test.test select n from generate_series(1,100000) as n returning * ) select 1;
 select count(*) from test.test;
@@ -55,12 +57,14 @@ EOF
 
 
 # source standby cluster
+export PGDATA=/tmp/db1_2
 export PGHOME=/home/simseih/workspace/RDSPostgres-Build/src/RDSPostgres/build
 export PATH=$PATH:$PGHOME/bin
 export LD_LIBRARY_PATH=$PGHOME/lib
 export PGPORT=5433
 
 # source primary cluster
+export PGDATA=/tmp/db1
 export PGHOME=/home/simseih/workspace/RDSPostgres-Build/src/RDSPostgres/build
 export PATH=$PATH:$PGHOME/bin
 export LD_LIBRARY_PATH=$PGHOME/lib
