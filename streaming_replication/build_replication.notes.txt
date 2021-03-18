@@ -1,4 +1,6 @@
-## build primary
+#################
+# build a primary
+#################
 pkill -9 postgres
 export PGHOME=$1
 export PATH=$PATH:$PGHOME/bin
@@ -18,14 +20,16 @@ psql postgres<<EOF
 select * from pg_create_physical_replication_slot('sb_slot1');
 EOF
 
-## Build standby
+#################
+# build a standby
+#################
 export PGHOME=$1
 export PATH=$PATH:$PGHOME/bin
 export LD_LIBRARY_PATH=$PGHOME/lib
 export PGDATA=/tmp/db1_2
 rm -rfv $PGDATA
 mkdir -pv /tmp/logs/db1_2
-pg_basebackup --pgdata=$PGDATA --format=p --write-recovery-conf --checkpoint=fast --label=mffb --progress --host=172.19.171.255 --port=5432 
+pg_basebackup --pgdata=$PGDATA --format=p --write-recovery-conf --checkpoint=fast --label=mffb --progress --host=172.19.171.255 --port=5432
 echo synchronous_standby_names = "''" >>$PGDATA/postgresql.conf
 echo primary_conninfo = "'host=172.19.171.255 port=5432 user=postgres password=mypassword'" >>$PGDATA/postgresql.conf
 echo primary_slot_name = "'sb_slot1'" >>$PGDATA/postgresql.conf
@@ -34,7 +38,15 @@ echo host    all             all             172.19.171.255/32         trust  >>
 pg_ctl start -D $PGDATA -l /tmp/logs/db1_2/logfile
 
 
+#############################
 # create database on primary
+############################
+export PGDATA=/tmp/db1
+export PGHOME=$1
+export PATH=$PATH:$PGHOME/bin
+export LD_LIBRARY_PATH=$PGHOME/lib
+export PGPORT=5432
+
 export PGDATA=/tmp/db1
 psql postgres<<EOF
 alter user simseih password 'password';
@@ -48,31 +60,49 @@ create table test ( id int );
 EOF
 
 
-# load data
+######################
+# load data in primary
+######################
 export PGDATA=/tmp/db1
+export PGHOME=$1
+export PATH=$PATH:$PGHOME/bin
+export LD_LIBRARY_PATH=$PGHOME/lib
+export PGPORT=5432
+
+for y in `seq 1 10`
+do
 psql test<<EOF
-with ins as ( insert into test.test select n from generate_series(1,100000) as n returning * ) select 1;
+with ins as ( insert into test.test select n from generate_series(1,1500000) as n returning * ) select 'loaded 1500000';
 select count(*) from test.test;
+EOF
+echo "E"
+done
+
+##########################
+# failover to secondary
+#########################
+export PGDATA=/tmp/db1_2
+export PGHOME=$1
+export PATH=$PATH:$PGHOME/bin
+export LD_LIBRARY_PATH=$PGHOME/lib
+export PGPORT=5433
+
+psql test<<EOF
+select pg_promote();
+checkpoint;
 EOF
 
 
-# source standby cluster
-export PGDATA=/tmp/db1_2
-export PGHOME=/home/simseih/workspace/RDSPostgres-Build/src/RDSPostgres/build
+#########################################
+# Move wal to softlink on the old primary
+########################################
+export PGDATA=/tmp/db1
+export PGHOME=$1
 export PATH=$PATH:$PGHOME/bin
 export LD_LIBRARY_PATH=$PGHOME/lib
-export PGPORT=5433
-
-# source primary cluster
+export PGPORT=5432
 export PGDATA=/tmp/db1
-export PGHOME=/home/simseih/workspace/RDSPostgres-Build/src/RDSPostgres/build
-export PATH=$PATH:$PGHOME/bin
-export LD_LIBRARY_PATH=$PGHOME/lib
-export PGPORT=5433
 
-
-# move wal to symlink
-export PGDATA=/tmp/db1
 rm -rfv /tmp/pg_wal
 cd $PGDATA/pg_wal
 mkdir /tmp/pg_wal
@@ -81,5 +111,3 @@ mv 000* /tmp/pg_wal/.
 for dir in /tmp/pg_wal/0000*; do
     ln -sf $dir $PGDATA/pg_wal/.
 done
-
-
