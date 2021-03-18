@@ -1,7 +1,9 @@
-##########################
-# clean archive directory
-##########################
+################################
+# Prepare building a SR cluster
+cd ~
+mkdir -pv /tmp/pg_wal
 rm -rfv /tmp/pg_wal/*
+###############################
 
 #################
 # build a primary
