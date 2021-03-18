@@ -1,3 +1,8 @@
+##########################
+# clean archive directory
+##########################
+rm -rfv /tmp/pg_wal/*
+
 #################
 # build a primary
 #################
@@ -15,6 +20,7 @@ echo listen_addresses = "'*'" >>$PGDATA/postgresql.conf
 echo synchronous_commit=on >>$PGDATA/postgresql.conf
 echo synchronous_standby_names = "'*'" >>$PGDATA/postgresql.conf
 echo wal_keep_size=500MB >>$PGDATA/postgresql.conf
+echo restore_command="'cp /tmp/pg_wal/%f %p'" >>$PGDATA/postgresql.conf
 pg_ctl start -D $PGDATA -l /tmp/logs/db1/logfile
 psql postgres<<EOF
 select * from pg_create_physical_replication_slot('sb_slot1');
