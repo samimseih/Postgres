@@ -1,0 +1,3 @@
+1. git rebase --root -i.
+2. For each commit except the first, change pick to squash.
+3. git push -f
